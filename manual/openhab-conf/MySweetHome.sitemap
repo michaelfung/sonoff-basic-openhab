@@ -1,4 +1,4 @@
-sitemap default label="My Sweet Home" {
+sitemap MySweetHome label="My Sweet Home" {
 
 	Frame label="Bedroom Sonoff Basic" {
 		Switch item=BedroomSonoff_Relay label="Light Switch" icon="light"
