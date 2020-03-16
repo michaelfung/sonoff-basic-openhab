@@ -52,15 +52,15 @@ let mqtt_will_topic = 'sonoff_basic/' + thing_id + '/link';
 let mqtt_control_topics = 'sonoff_basic/' + thing_id + '/+/set';
 let hab_state_topic = 'sonoff_basic/' + thing_id + '/state';
 let hab_link_topic = 'sonoff_basic/' + thing_id + '/link';
-let dns_sd_host_name = 'sonoff-' + thing_id;
+let dns_hostname = 'sonoff-' + thing_id;
 
 // populate require config with thing_id
 if (Cfg.get('mqtt.will_topic') !== mqtt_will_topic) {
     Cfg.set({ mqtt: { will_topic: mqtt_will_topic } });
     Cfg.set({ mqtt: { client_id: thing_id } });
-    Cfg.set({ wifi: { sta: { dhcp_hostname: dns_sd_host_name } } });
+    Cfg.set({ wifi: { sta: { dhcp_hostname: dns_hostname } } });
     Log.print(Log.INFO, '### MQTT config updated ###');
-};
+}
 
 // WiFi Events
 
@@ -255,6 +255,26 @@ let toggle_switch = function () {
     }
 };
 
+// set RPC command to set relay
+RPC.addHandler('SetRelay', function (args) {
+    if (typeof(args) === 'object' && typeof(args.state) === 'string') {
+        if (args.state === 'ON') {
+            set_switch(1);
+        } else if (args.state === 'OFF') {
+            set_switch(0);
+        } else {
+            Log.print(Log.ERROR, 'SetRelay RPC call: bad state value');
+            return {error: -1, message: 'Bad request.'};
+        }
+        Log.print(Log.INFO, 'SetRelay RPC call: ' + args.state);
+        return {result: 'OK'};
+    }
+    else {
+        Log.print(Log.ERROR, 'SetRelay RPC call: bad params');
+        return {error: -1, message: 'Bad request.'};
+    }
+});
+
 // check schedule and fire if time reached
 let run_sch = function () {
     Log.print(Log.DEBUG, 'switch schedules:' + JSON.stringify(sch));
@@ -416,11 +436,10 @@ Event.addHandler(Event.MGOS_WIFI_EV_STA_IP_ACQUIRED, function (ev, evdata, ud) {
     last_wifi_disconnected = 0;
     GPIO.blink(led_pin, 900, 100);
     Log.print(Log.INFO, "Connected and got IP addr");
-    if (Cfg.get('dns_sd.host_name') !== dns_sd_host_name) {
-        Cfg.set({ dns_sd: { enable: true } });
-        Cfg.set({ dns_sd: { host_name: dns_sd_host_name } });
+    if (Cfg.get('dns_sd.host_name') !== dns_hostname) {            
+        Cfg.set({ dns_sd: { enable: true, host_name: dns_hostname } });
         Log.print(Log.INFO, '### DNS-SD config updated ###');
-    };
+    }    
 }, null);
 
 // timer loop to update state and run schedule jobs
