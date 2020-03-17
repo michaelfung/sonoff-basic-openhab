@@ -158,52 +158,13 @@ if (nmEnabled) {
     }
 }
 
-// set RPC command to begin night mode
-RPC.addHandler('NM.Begin', function (args) {
-    // no args parsing required
-    setNightMode(1);
-    return JSON.stringify({ result: 'OK' });
-});
-
-// set RPC command to end night mode
-RPC.addHandler('NM.End', function (args) {
-    // no args parsing required
-    setNightMode(0);
-    return JSON.stringify({ result: 'OK' });
-});
-
 // read timer schedules from a json file
 let sch = [];
 
 let load_sch = function () {
     sch = [];  // reset sch
-    let ok = false;
-    let schedules = File.read('schedules.json');
-    if (schedules !== null) {
-        let sch_obj = JSON.parse(schedules);
-        if (sch_obj !== null) {
-            sch = sch_obj.sch;
-            ok = true;
-            Log.print(Log.INFO, 'loaded schedules from file:' + JSON.stringify(sch));
-        } else {
-            Log.print(Log.ERROR, 'schedule file corrupted.');
-        }
-    } else {
-        Log.print(Log.ERROR, 'schedule file missing.');
-    }
-    return ok;
+    return true;
 };
-
-
-// set RPC command to reload schedule timer
-// call me after a new schedules.json file is put into the fs
-RPC.addHandler('ReloadSchedule', function (args) {
-    // no args parsing required
-    let response = {
-        result: load_sch() ? 'OK' : 'Failed'
-    };
-    return JSON.stringify(response);
-});
 
 // notify server of switch state
 let update_state = function () {
@@ -377,7 +338,7 @@ MQTT.sub(mqtt_control_topics, function (conn, topic, msg) {
     // enable sch
     else if (topic.indexOf('sch_enable') !== -1) {
         sch_enable = (msg === 'ON') ? true : false;
-        Cfg.set({ timer: { sch_enable: sch_enable } });
+        // Cfg.set({ timer: { sch_enable: sch_enable } });
     }
     else {
         Log.print(Log.ERROR, 'unspported topic');
