@@ -11,7 +11,6 @@ load('api_mqtt.js');
 load('api_config.js');
 load('api_log.js');
 load('api_math.js');
-load('api_file.js');
 load('api_rpc.js');
 load('api_events.js');
 
@@ -28,6 +27,7 @@ let mqtt_connected = false;
 let clock_sync = false;
 let relay_last_on_ts = null;
 let oncount = 0; // relay ON state duration
+let sch = [{"min":0,"hour":23,"dow":"*","value":0,"label":"good night"}];
 let sch_enable = Cfg.get('timer.sch_enable');
 let skip_once = false;  // skip next schedule for once
 let last_wifi_disconnected = 0; // or Sys.Uptime() if we sure can catch the first cconnected evt
@@ -63,20 +63,6 @@ if (Cfg.get('mqtt.will_topic') !== mqtt_will_topic) {
 }
 
 // WiFi Events
-
-// #define MGOS_WIFI_EV_BASE MGOS_EVENT_BASE('W', 'F', 'I')
-// #define MGOS_EVENT_GRP_WIFI MGOS_WIFI_EV_BASE
-
-// /* In the comment, the type of `void *ev_data` is specified */
-// enum mgos_wifi_event {
-//   MGOS_WIFI_EV_STA_DISCONNECTED =
-//       MGOS_WIFI_EV_BASE,            /* Arg: mgos_wifi_sta_disconnected_arg */
-//   MGOS_WIFI_EV_STA_CONNECTING,      /* Arg: NULL */
-//   MGOS_WIFI_EV_STA_CONNECTED,       /* Arg: mgos_wifi_sta_connected_arg */
-//   MGOS_WIFI_EV_STA_IP_ACQUIRED,     /* Arg: NULL */
-//   MGOS_WIFI_EV_AP_STA_CONNECTED,    /* Arg: mgos_wifi_ap_sta_connected_arg */
-//   MGOS_WIFI_EV_AP_STA_DISCONNECTED, /* Arg: mgos_wifi_ap_sta_disconnected_arg */
-// };
 Event.WIFI = Event.baseNumber('WFI');
 Event.MGOS_WIFI_EV_STA_DISCONNECTED = Event.WIFI;
 Event.MGOS_WIFI_EV_STA_CONNECTED = Event.WIFI + 2;
@@ -157,14 +143,6 @@ if (nmEnabled) {
         Log.print(Log.INFO, "End Min Of Day: " + JSON.stringify(nmEndMinOfDay));
     }
 }
-
-// read timer schedules from a json file
-let sch = [];
-
-let load_sch = function () {
-    sch = [];  // reset sch
-    return true;
-};
 
 // notify server of switch state
 let update_state = function () {
@@ -298,7 +276,7 @@ GPIO.set_button_handler(button_pin, GPIO.PULL_UP, GPIO.INT_EDGE_NEG, 500, functi
 }, true);
 
 MQTT.sub(mqtt_control_topics, function (conn, topic, msg) {
-    Log.print(Log.DEBUG, 'rcvd thing topic:' + topic + ' msg:' + msg);
+    Log.print(Log.INFO, 'rcvd thing topic:' + topic + ' msg:' + msg);
 
     // switch
     if (topic.indexOf('switch') !== -1) {
@@ -370,9 +348,9 @@ Event.addHandler(MGOS_EVENT_TIME_CHANGED, function (ev, evdata, ud) {
     if (Timer.now() > 1577836800 /* 2020-01-01 */) {
         clock_sync = true;
         Log.print(Log.INFO, 'mgos clock event: clock sync ok');
-        if (sch_enable && sch.length === 0) {
-            load_sch();
-        }
+        // if (sch_enable && sch.length === 0) {
+        //     load_sch();
+        // }
     } else {
         Log.print(Log.INFO, 'mgos clock event: clock not sync yet');
     }
