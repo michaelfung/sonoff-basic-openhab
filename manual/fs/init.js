@@ -4,18 +4,16 @@
  */
 
 // Load Mongoose OS API
-load('api_timer.js');
+load('api_timer.js'),
 load('api_gpio.js');
 load('api_sys.js');
 load('api_mqtt.js');
 load('api_config.js');
 load('api_log.js');
-load('api_math.js');
 load('api_rpc.js');
 load('api_events.js');
 
 // define variables
-
 let led_pin = 13; // Sonoff LED pin
 let relay_pin = 12;  // Sonoff relay pin
 let spare_pin = 14;  // Sonoff not connected
@@ -27,11 +25,14 @@ let mqtt_connected = false;
 let clock_sync = false;
 let relay_last_on_ts = null;
 let oncount = 0; // relay ON state duration
-let sch = [{"min":0,"hour":23,"dow":"*","value":0,"label":"good night"}];
+//let sch = [{"min":0,"hour":23,"dow":"*","value":0,"label":"good night"}];
+let sch = null;
 let sch_enable = Cfg.get('timer.sch_enable');
 let skip_once = false;  // skip next schedule for once
 let last_wifi_disconnected = 0; // or Sys.Uptime() if we sure can catch the first cconnected evt
 let long_press_timer = null;
+
+let floor= ffi('double floor(double)');
 
 // (convert A-Z to a-z)
 let tolowercase = function (s) {
@@ -160,7 +161,7 @@ let update_state = function () {
         uptime: uptime,
         memory: Sys.free_ram(),
         relay_state: relay_value ? 'ON' : 'OFF',
-        oncount: Math.floor(oncount),
+        oncount: floor(oncount),
         skip_once: skip_once ? 'ON' : 'OFF',
         sch_enable: sch_enable ? 'ON' : 'OFF',
         cdt: CDT.count
@@ -194,7 +195,6 @@ let toggle_switch = function () {
     }
 };
 
-// set RPC command to set relay
 RPC.addHandler('SetRelay', function (args) {
     if (typeof(args) === 'object' && typeof(args.state) === 'string') {
         if (args.state === 'ON') {
@@ -214,14 +214,24 @@ RPC.addHandler('SetRelay', function (args) {
     }
 });
 
+RPC.addHandler('SetSchedule', function (args) {
+    if (typeof(args) === 'object' && typeof(args.sch) === 'object' && args.sch.length > 0) {
+        sch = args.sch;
+    }
+    else {
+        Log.print(Log.ERROR, 'SetSchedule RPC call: bad params');
+        return {error: -1, message: 'Bad request.'};
+    }
+});
+
 // check schedule and fire if time reached
 let run_sch = function () {
     Log.print(Log.DEBUG, 'switch schedules:' + JSON.stringify(sch));
-    let local_now = Math.floor(Timer.now()) + tz_offset;
+    let local_now = floor(Timer.now()) + tz_offset;
     // calc current time of day from mg_time
-    let min_of_day = Math.floor((local_now % 86400) / 60);
+    let min_of_day = floor((local_now % 86400) / 60);
     // calc current day of week from mg_time
-    let day_of_week = Math.floor((local_now % (86400 * 7)) / 86400) + 4; // epoch is Thu
+    let day_of_week = floor((local_now % (86400 * 7)) / 86400) + 4; // epoch is Thu
     Log.print(Log.DEBUG, "run_sch: Localized current time is " + JSON.stringify(min_of_day) + " minutes of day " + JSON.stringify(day_of_week));
 
     if (sch_enable) {
