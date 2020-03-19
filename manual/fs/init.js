@@ -25,7 +25,7 @@ let mqtt_connected = false;
 let clock_sync = false;
 let relay_last_on_ts = null;
 let oncount = 0; // relay ON state duration
-//let sch = [{"min":0,"hour":23,"dow":"*","value":0,"label":"good night"}];
+let sch = [{"min":0,"hour":23,"dow":"*","value":0,"label":"good night"}];
 let sch = null;
 let sch_enable = Cfg.get('timer.sch_enable');
 let skip_once = false;  // skip next schedule for once
@@ -210,16 +210,6 @@ RPC.addHandler('SetRelay', function (args) {
     }
     else {
         Log.print(Log.ERROR, 'SetRelay RPC call: bad params');
-        return {error: -1, message: 'Bad request.'};
-    }
-});
-
-RPC.addHandler('SetSchedule', function (args) {
-    if (typeof(args) === 'object' && typeof(args.sch) === 'object' && args.sch.length > 0) {
-        sch = args.sch;
-    }
-    else {
-        Log.print(Log.ERROR, 'SetSchedule RPC call: bad params');
         return {error: -1, message: 'Bad request.'};
     }
 });
