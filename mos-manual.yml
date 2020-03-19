@@ -1,7 +1,7 @@
 name: openhab_sonoff_basic
 author: Michael Fung <hkuser2001@gmail.com>
 description: Sonoff Basic firmware for openHAB
-version: 1.1_20200317r2
+version: 1.1_20200319r1
 manifest_version: 2017-09-29
 
 libs_version: ${mos_version}
@@ -29,7 +29,6 @@ libs:
   - origin: https://github.com/mongoose-os-libs/dns-sd
 
 config_schema:
-# - ["mjs.generate_jsc", false]
   - ["mqtt.enable", true]
   - ["mqtt.server", "openhab.lan:1883"]
   - ["mqtt.will_message", "OFF"]
