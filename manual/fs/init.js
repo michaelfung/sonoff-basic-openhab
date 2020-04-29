@@ -29,7 +29,6 @@ let sch = [{"min":0,"hour":23,"dow":"*","value":0,"label":"good night"}];
 let sch = null;
 let sch_enable = Cfg.get('timer.sch_enable');
 let skip_once = false;  // skip next schedule for once
-let last_wifi_disconnected = 0; // or Sys.Uptime() if we sure can catch the first cconnected evt
 let long_press_timer = null;
 
 let floor= ffi('double floor(double)');
@@ -356,14 +355,6 @@ Event.addHandler(MGOS_EVENT_TIME_CHANGED, function (ev, evdata, ud) {
     }
 }, null);
 
-// set wifi disconect timer
-Event.addHandler(Event.MGOS_WIFI_EV_STA_DISCONNECTED, function (ev, evdata, ud) {
-    if (last_wifi_disconnected === 0) {  // this evt will fire if re-connect attempt fail
-        last_wifi_disconnected = Sys.uptime();
-        Log.print(Log.WARN, "### WiFi disconnected ###");
-    }
-}, null);
-
 // change blink pattern when WiFi connected but before got ip
 Event.addHandler(Event.MGOS_WIFI_EV_STA_CONNECTED, function (ev, evdata, ud) {
     Log.print(Log.INFO, "### WiFi connected ###");
@@ -372,7 +363,6 @@ Event.addHandler(Event.MGOS_WIFI_EV_STA_CONNECTED, function (ev, evdata, ud) {
 
 // reset wifi disconect timer
 Event.addHandler(Event.MGOS_WIFI_EV_STA_IP_ACQUIRED, function (ev, evdata, ud) {
-    last_wifi_disconnected = 0;
     GPIO.blink(led_pin, 900, 100);
     Log.print(Log.INFO, "Connected and got IP addr");
     if (Cfg.get('dns_sd.host_name') !== dns_hostname) {            
@@ -389,13 +379,6 @@ let main_loop_timer = Timer.set(1000 /* 1 sec */, true /* repeat */, function ()
         // process countdown timer
         // dont run schedule if counting down
         if (clock_sync && CDT.count === 'OFF') run_sch();
-
-        // lost network for too long?        
-        if (last_wifi_disconnected > 0 && ((Sys.uptime() - last_wifi_disconnected) > 300)) {
-            // reboot to workaround wifi reconnect issue
-            Log.print(Log.WARN, "reboot to workaround wifi reconnect issue");
-            Sys.reboot(500); // reboot in 500 ms
-        }
     }
 
     if ((tick_count % 300) === 0) { /* 5 min */
